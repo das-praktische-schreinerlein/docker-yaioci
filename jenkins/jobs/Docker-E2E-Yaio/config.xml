@@ -1,0 +1,140 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>SOURCE</name>
+          <description></description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>Metrics-MS-Java-your-all-in-one</string>
+              <string>Build-MS-JS-yaio-explorerapp</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.25">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers>
+    <jenkins.triggers.ReverseBuildTrigger>
+      <spec></spec>
+      <upstreamProjects>Docker-Build-Yaio</upstreamProjects>
+      <threshold>
+        <name>SUCCESS</name>
+        <ordinal>0</ordinal>
+        <color>BLUE</color>
+        <completeBuild>true</completeBuild>
+      </threshold>
+    </jenkins.triggers.ReverseBuildTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>SRC_WS=&quot;../../Metrics-MS-Java-your-all-in-one/workspace/&quot;
+SRC_E2e=&quot;${SRC_WS}/yaio-app-e2e/&quot;
+if [ &quot;$SOURCE&quot; = &apos;Build-MS-JS-yaio-explorerapp&apos; ]; then
+    SRC_WS=&quot;../../Build-MS-JS-yaio-explorerapp/workspace/&quot;
+    SRC_E2e=&quot;${SRC_WS}/&quot;
+fi
+
+CONTAINER_NAME=yaioserver_yaioci_e2e
+RANDOM_PORT=`tr -cd 0-9 &lt;/dev/urandom | head -c 2`
+YAIO_PORT=86${RANDOM_PORT}
+IMAGE_VERSION=0.1.0-beta-feature-YAIO2859-improvements-201610-SNAPSHOT
+
+
+echo &quot;copy src: $CMD&quot;
+cp -ra ${SRC_E2e}/* ./
+
+
+echo &quot;override configuration&quot;
+sed -i -e &quot;s/var baseUrl.*/var baseUrl = &apos;http:\/\/192.168.99.100:${YAIO_PORT}&apos;;/g&quot; protractor.yaio.conf.js
+sed -i -e &quot;s/var downloadPath = &apos;d:\/tmp\/&apos;;/var downloadPath = &apos;\/tmp\/&apos;;/g&quot; protractor.yaio.conf.js
+sed -i -e &quot;s/--local-storage-path d:\/tmp\//--local-storage-path \/tmp\//g&quot; protractor.yaio.conf.js
+#sed -i -e &quot;s/seleniumAddress: &apos;http:\/\/localhost:4444\/wd\/hub&apos;/seleniumAddress: &apos;http:\/\/192.168.99.100:4444\/wd\/hub&apos;/g&quot;  protractor.yaio.conf.js
+
+
+echo &quot;start yaio-docker&quot;
+docker run --detach --publish=${YAIO_PORT}:8666 --name ${CONTAINER_NAME} yaio/yaioserver:${IMAGE_VERSION}
+
+echo &quot;init webdriver&quot;
+node_modules/.bin/webdriver-manager update --ie
+
+echo &quot;start webdriver&quot;
+node_modules/.bin/webdriver-manager start &gt; /dev/null 2&gt;&amp;1 &amp;
+
+
+echo &quot;sleep till docker/selenium is starteted&quot;
+sleep 60s
+
+echo &quot;start protractor tests&quot;
+node_modules/.bin/grunt protractor:e2e
+</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.plugins.postbuildtask.PostbuildTask plugin="postbuild-task@1.8">
+      <tasks>
+        <hudson.plugins.postbuildtask.TaskProperties>
+          <logTexts>
+            <hudson.plugins.postbuildtask.LogProperties>
+              <logText></logText>
+              <operator>AND</operator>
+            </hudson.plugins.postbuildtask.LogProperties>
+          </logTexts>
+          <EscalateStatus>false</EscalateStatus>
+          <RunIfJobSuccessful>false</RunIfJobSuccessful>
+          <script>BLA=&quot;#!&quot;; BLUB=&quot;/bin/bash&quot;; echo $BLA$BLUB &gt; ./doRoot.sh&#xd;
+SRC_WS=&quot;../../Metrics-MS-Java-your-all-in-one/workspace/&quot;&#xd;
+SRC_E2e=&quot;${SRC_WS}/yaio-app-e2e/&quot;&#xd;
+&#xd;
+CONTAINER_NAME=yaioserver_yaioci_e2e&#xd;
+&#xd;
+echo &quot;stop docker ${CONTAINER_NAME}&quot;&#xd;
+docker stop ${CONTAINER_NAME}&#xd;
+&#xd;
+echo &quot;rm docker ${CONTAINER_NAME}&quot;&#xd;
+docker rm  --volumes ${CONTAINER_NAME}&#xd;
+</script>
+        </hudson.plugins.postbuildtask.TaskProperties>
+        <hudson.plugins.postbuildtask.TaskProperties>
+          <logTexts>
+            <hudson.plugins.postbuildtask.LogProperties>
+              <logText></logText>
+              <operator>AND</operator>
+            </hudson.plugins.postbuildtask.LogProperties>
+          </logTexts>
+          <EscalateStatus>false</EscalateStatus>
+          <RunIfJobSuccessful>false</RunIfJobSuccessful>
+          <script>echo &quot;stop webdriver&quot;&#xd;
+pid=`ps aux | grep &quot;node_modules/.bin/webdriver-manager start&quot; | grep -v grep | awk &apos;{print $2}&apos;`&#xd;
+kill TERM $pid&#xd;
+</script>
+        </hudson.plugins.postbuildtask.TaskProperties>
+      </tasks>
+    </hudson.plugins.postbuildtask.PostbuildTask>
+  </publishers>
+  <buildWrappers>
+    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.29">
+      <deleteDirs>false</deleteDirs>
+      <cleanupParameter></cleanupParameter>
+      <externalDelete></externalDelete>
+    </hudson.plugins.ws__cleanup.PreBuildCleanup>
+    <jenkins.plugins.nodejs.tools.NpmPackagesBuildWrapper plugin="nodejs@0.2.1">
+      <nodeJSInstallationName>nodejs</nodeJSInstallationName>
+    </jenkins.plugins.nodejs.tools.NpmPackagesBuildWrapper>
+  </buildWrappers>
+</project>

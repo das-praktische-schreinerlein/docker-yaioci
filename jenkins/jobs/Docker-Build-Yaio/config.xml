@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.25">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers>
+    <jenkins.triggers.ReverseBuildTrigger>
+      <spec></spec>
+      <upstreamProjects>Metrics-MS-Java-your-all-in-one</upstreamProjects>
+      <threshold>
+        <name>SUCCESS</name>
+        <ordinal>0</ordinal>
+        <color>BLUE</color>
+        <completeBuild>true</completeBuild>
+      </threshold>
+    </jenkins.triggers.ReverseBuildTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>BLA=&quot;#!&quot;; BLUB=&quot;/bin/bash&quot;; echo $BLA$BLUB &gt; ./doRoot.sh
+PARENTWORKDIR=../../Metrics-MS-Java-your-all-in-one/workspace/
+echo &quot;PATH=$PATH:../../../tools/hudson.tasks.Maven_MavenInstallation/Maven_3.3.3/bin/:&quot; &gt;&gt; ./doRoot.sh
+echo &quot;cd $PARENTWORKDIR&quot; &gt;&gt; doRoot.sh
+echo &quot;cd installer/docker/&quot; &gt;&gt; doRoot.sh
+echo &quot;chmod 700 -R *.sh&quot; &gt;&gt; doRoot.sh
+echo &quot;chmod 700 -R ../linux/*.sh&quot; &gt;&gt; doRoot.sh
+echo &quot;chmod 700 -R ../linux/**/*.sh&quot; &gt;&gt; doRoot.sh
+echo &quot;./build-dockerimage.sh&quot; &gt;&gt; doRoot.sh
+
+sudo ./doRoot.sh
+</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers>
+    <jenkins.plugins.nodejs.tools.NpmPackagesBuildWrapper plugin="nodejs@0.2.1">
+      <nodeJSInstallationName>nodejs</nodeJSInstallationName>
+    </jenkins.plugins.nodejs.tools.NpmPackagesBuildWrapper>
+  </buildWrappers>
+</project>

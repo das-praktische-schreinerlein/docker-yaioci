@@ -1,0 +1,127 @@
+version: '2'
+
+networks:
+  prodnetwork:
+    driver: bridge
+
+services:
+# nexus:
+#  build: ./nexus
+#  ports:
+#    - "18081:8081"
+#  networks:
+#    - prodnetwork
+
+  jenkins:
+    build: ./jenkins
+    ports:
+      - "18080:8080"
+    networks:
+      - prodnetwork
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/local/bin/docker:/usr/bin/docker
+      - /docker_shared/do_ci/jenkins:/home/do_ci_jenkins
+      - /d_projekte/:/home/d_projekte
+      - /d_projekte/yaio-playground:/home/d_projekte_yaio-playground
+      - /d_projekte/docker-yaioci/:/home/d_projekte_docker-yaioci
+      - /d_projekte/docker-yaioci/jenkins/jobs/seed-ms-github-job/workspace/:/var/jenkins_home/jobs/seed-ms-github-job/workspace/
+      - /mytoys_src/ms_search_configuration_tool:/home/t_mytoys_src_ms_search_configuration_tool
+      - /mytoys_repos/:/home/t_mytoys_repos
+#      - /opt/jenkins/:/var/lib/jenkins/
+    depends_on:
+#      - nexus
+#      - gitlab
+      - sonar
+#      - seleniumhub
+    environment:
+      - NEXUS_PORT=8081
+      - SONAR_PORT=9000
+      - SONAR_DB_PORT=5432
+      - TZ="Europe/Berlin"
+
+  sonar:
+    build: ./sonar
+    ports:
+      - "19000:9000"
+      - "5432:5432"
+    networks:
+      - prodnetwork
+    depends_on:
+      - sonardb
+    environment:
+      - SONARQUBE_JDBC_URL=jdbc:postgresql://sonardb:5432/sonar
+      - TZ="Europe/Berlin"
+    volumes:
+       - /docker_shared/do_ci/sonar:/home/do_ci_sonar
+  sonardb:
+    image: postgres:9.6
+    networks:
+      - prodnetwork
+    environment:
+     - POSTGRES_USER=sonar
+     - POSTGRES_PASSWORD=sonar
+     - TZ="Europe/Berlin"
+    volumes:
+      - /docker_shared/do_ci/sonardb:/home/do_ci_sonardb
+# commented out because path not exists
+#      - /opt/postgres/data:/var/lib/postgresql/data
+
+#  seleniumhub:
+#    image: selenium/hub
+#    ports:
+#      - "4444:4444"
+#    networks:
+#      - prodnetwork
+#    environment:
+#      - TZ="Europe/Berlin"
+#  nodeff:
+#    image: selenium/node-firefox
+#    ports:
+#      - 5900
+#    networks:
+#      - prodnetwork
+#    environment:
+#      - HUB_PORT_4444_TCP_ADDR=seleniumhub
+#      - TZ="Europe/Berlin"
+#    depends_on:
+#      - seleniumhub
+#  nodechrome:
+#    image: selenium/node-chrome
+#    ports:
+#      - 5900
+#    networks:
+#      - prodnetwork
+#    environment:
+#      - HUB_PORT_4444_TCP_ADDR=seleniumhub
+#      - TZ="Europe/Berlin"
+#    depends_on:
+#      - seleniumhub
+#  nodephantom-js:
+#    image: akeem/selenium-node-phantomjs
+#    ports:
+#      - 5900
+#    networks:
+#      - prodnetwork
+#    environment:
+#      - HUB_PORT_4444_TCP_ADDR=seleniumhub
+#      - TZ="Europe/Berlin"
+#    depends_on:
+#      - seleniumhub
+
+#  gitlab:
+#    image: gitlab/gitlab-ce:8.9.6-ce.0
+#    restart: always
+#    hostname: '192.168.99.100'
+#    environment:
+#      GITLAB_OMNIBUS_CONFIG: |
+#       # external_url 'https://gitlab.example.com'
+#       # Add any other gitlab.rb configuration here, each on its own line
+#    ports:
+#      - "80:80"
+#      - "443:443"
+#      - "2222:22"
+#    volumes:
+#      - /opt/gitlab/config:/etc/gitlab
+#      - /opt/gitlab/logs:/var/log/gitlab
+#      - /opt/gitlab/data:/var/opt/gitlab

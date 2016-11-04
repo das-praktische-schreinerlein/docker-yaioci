@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<hudson.plugins.sonar.SonarGlobalConfiguration plugin="sonar@2.4.4">
+  <installations>
+    <hudson.plugins.sonar.SonarInstallation>
+      <name>sonarcube</name>
+      <serverUrl>http://192.168.99.100:19000</serverUrl>
+      <serverVersion>5.1</serverVersion>
+      <serverAuthenticationToken></serverAuthenticationToken>
+      <mojoVersion></mojoVersion>
+      <databaseUrl>jdbc:postgresql://sonardb:5432/sonar</databaseUrl>
+      <databaseLogin>sonar</databaseLogin>
+      <additionalProperties></additionalProperties>
+      <additionalAnalysisProperties></additionalAnalysisProperties>
+      <triggers>
+        <skipScmCause>false</skipScmCause>
+        <skipUpstreamCause>false</skipUpstreamCause>
+        <envVar></envVar>
+      </triggers>
+      <sonarLogin>admin</sonarLogin>
+      <databaseSecret>BXPjhZTz1DVVV1iBP0/N6DJYrsYSlQ7QLsAtgCuuMig=</databaseSecret>
+      <sonarSecret>4QkQWhYefSk4HkbDUop2BjJYrsYSlQ7QLsAtgCuuMig=</sonarSecret>
+    </hudson.plugins.sonar.SonarInstallation>
+  </installations>
+  <buildWrapperEnabled>true</buildWrapperEnabled>
+</hudson.plugins.sonar.SonarGlobalConfiguration>
