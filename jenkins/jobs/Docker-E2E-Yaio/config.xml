@@ -8,11 +8,37 @@
       <parameterDefinitions>
         <hudson.model.ChoiceParameterDefinition>
           <name>SOURCE</name>
-          <description></description>
+          <description>Quelle der e2e-Sourcen</description>
           <choices class="java.util.Arrays$ArrayList">
             <a class="string-array">
               <string>Metrics-MS-Java-your-all-in-one</string>
               <string>Build-MS-JS-yaio-explorerapp</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>SELENIUMHUB</name>
+          <description>Welcher Hub soll benutzt werden:
+- lokal mit phantomjs oder 
+- dockerseleniumhubmit phantomjs, firefox, chrome</description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>lokal</string>
+              <string>dockerseleniumhub</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>BROWSER</name>
+          <description>Welche Browser sollen benutzt werden:
+- phantomjs oder 
+- all (nur bei SELENIUMHUB=dockerseleniumhub)</description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>phantomjs</string>
+              <string>do_firefox</string>
+              <string>do_chrome</string>
+              <string>do_all</string>
             </a>
           </choices>
         </hudson.model.ChoiceParameterDefinition>
@@ -64,17 +90,34 @@ echo &quot;override configuration&quot;
 sed -i -e &quot;s/var baseUrl.*/var baseUrl = &apos;http:\/\/192.168.99.100:${YAIO_PORT}&apos;;/g&quot; protractor.yaio.conf.js
 sed -i -e &quot;s/var downloadPath = &apos;d:\/tmp\/&apos;;/var downloadPath = &apos;\/tmp\/&apos;;/g&quot; protractor.yaio.conf.js
 sed -i -e &quot;s/--local-storage-path d:\/tmp\//--local-storage-path \/tmp\//g&quot; protractor.yaio.conf.js
-#sed -i -e &quot;s/seleniumAddress: &apos;http:\/\/localhost:4444\/wd\/hub&apos;/seleniumAddress: &apos;http:\/\/192.168.99.100:4444\/wd\/hub&apos;/g&quot;  protractor.yaio.conf.js
-
 
 echo &quot;start yaio-docker&quot;
 docker run --detach --publish=${YAIO_PORT}:8666 --name ${CONTAINER_NAME} yaio/yaioserver:${IMAGE_VERSION}
 
-echo &quot;init webdriver&quot;
-node_modules/.bin/webdriver-manager update --ie
+if [ &quot;$SELENIUMHUB&quot; = &apos;lokal&apos; ]; then
+	# local webdriver
+	echo &quot;use local webdriver&quot;
+	echo &quot;init webdriver&quot;
+	node_modules/.bin/webdriver-manager update --ie
 
-echo &quot;start webdriver&quot;
-node_modules/.bin/webdriver-manager start &gt; /dev/null 2&gt;&amp;1 &amp;
+	echo &quot;start webdriver&quot;
+	node_modules/.bin/webdriver-manager start &gt; /dev/null 2&gt;&amp;1 &amp;
+else 
+    # seleniumserver
+	echo &quot;use seleniumhub 192.168.99.100:4444&quot;
+    sed -i -e &quot;s/seleniumAddress: &apos;http:\/\/localhost:4444\/wd\/hub&apos;/seleniumAddress: &apos;http:\/\/192.168.99.100:4444\/wd\/hub&apos;/g&quot;  protractor.yaio.conf.js
+    sed -i -e &quot;s/&apos;phantomjs.binary.path&apos;/\/\/&apos;phantomjs.binary.path&apos;/g&quot;  protractor.yaio.conf.js
+	if [ &quot;$BROWSER&quot; = &apos;do_all&apos; ]; then
+    	#sed -i -e &quot;s/multiCapabilities: \[/multiCapabilities: [{ &apos;browserName&apos;: &apos;firefox&apos;}, { &apos;browserName&apos;: &apos;chrome&apos;}, /g&quot;  protractor.yaio.conf.js
+        sed -i -e &quot;s/multiCapabilities: \[/multiCapabilities: [{ &apos;browserName&apos;: &apos;chrome&apos;}, /g&quot;  protractor.yaio.conf.js
+    elif [ &quot;$BROWSER&quot; = &apos;do_firefox&apos; ]; then
+    	perl -0777 -pi -e &quot;s/\{\s*\/\/ phantomjs buggy.*?loglevel=DEBUG&apos;\]\s*\}//gso&quot;   protractor.yaio.conf.js
+    	sed -i -e &quot;s/multiCapabilities: \[/multiCapabilities: [{ &apos;browserName&apos;: &apos;firefox&apos;}, /g&quot;  protractor.yaio.conf.js
+    elif [ &quot;$BROWSER&quot; = &apos;do_chrome&apos; ]; then
+    	perl -0777 -pi -e &quot;s/\{\s*\/\/ phantomjs buggy.*?loglevel=DEBUG&apos;\]\s*\}//gso&quot;   protractor.yaio.conf.js
+    	sed -i -e &quot;s/multiCapabilities: \[/multiCapabilities: [{ &apos;browserName&apos;: &apos;chrome&apos;}, /g&quot;  protractor.yaio.conf.js
+    fi
+fi
 
 
 echo &quot;sleep till docker/selenium is starteted&quot;

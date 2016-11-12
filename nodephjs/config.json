@@ -1,0 +1,15 @@
+{
+  "capabilities": [
+    {
+      "browserName": "phantomjs",
+      "maxInstances": 1,
+      "seleniumProtocol": "WebDriver",
+      "phantomjs.binary.path": "/usr/local/bin/phantomjs"
+    }
+  ],
+  "proxy": "org.openqa.grid.selenium.proxy.DefaultRemoteProxy",
+  "maxSession": 1,
+  "port": 5555,
+  "register": true,
+  "registerCycle": 5000
+}
