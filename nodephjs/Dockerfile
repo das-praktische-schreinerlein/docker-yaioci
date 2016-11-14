@@ -1,3 +1,4 @@
+# inspired by https://github.com/stevenalexander/docker-selenium and https://github.com/SeleniumHQ/docker-selenium
 FROM selenium/base:3.0.1-aluminum
 MAINTAINER Selenium <selenium-developers@googlegroups.com>
 
