@@ -20,7 +20,7 @@ DIRDOCKER_SHARED_BASE=/docker_shared              # dir in the docker-machine
 # docker-machine:ALIAS_D_PROJEKTE_BASE -> DIRDOCKER_D_PROJEKTE_BASE
 # now you can mount this into the docker-container with: "docker run -v DIRDOCKER_D_PROJEKTE_BASE/project:PROJECT_DIR_IN_DOCKER_CONTAINER"
 # and use it in docker docker via DIR_IN_DOCKER_CONTAINER
-DIRLOCAL_WIN_D_PROJEKTE_BASE="D:\\Projekte\\"     # configure the local jenkins_home-path for virtualbox (on windows in windows-notation)
+DIRLOCAL_WIN_D_PROJEKTE_BASE="f:\\Projekte\\"     # configure the local jenkins_home-path for virtualbox (on windows in windows-notation)
 ALIAS_D_PROJEKTE_BASE=d_projekte                  # alias for mapping into docker-machine
 DIRDOCKER_D_PROJEKTE_BASE=/d_projekte             # dir in the docker-machine
 
@@ -201,6 +201,18 @@ doi_rmi_all_untagged()
     echo "START doi_rmi_all_untagged: remove all untagged docker-images"
     docker images -a | grep "<none>" | awk '{print $3}' | xargs docker rmi -f
     echo "DONE doi_rmi_all_untagged: remove all untagged docker-images"
+}
+doi_rmi_all_unused()
+{
+    echo "START doi_rmi_all_unused: remove all unused docker-images"
+    docker rmi $(docker images --filter "dangling=true" -q --no-trunc)
+    echo "DONE doi_rmi_all_unused: remove all unused docker-images"
+}
+doi_rm_unused_volumes()
+{
+    echo "START doi_rm_unused_volumes: remove all unused docker-volumes"
+    docker volume ls -qf dangling=true | xargs -r docker volume rm
+    echo "START doi_rm_unused_volumes: remove all unused docker-volumes"
 }
 doi_run()
 {

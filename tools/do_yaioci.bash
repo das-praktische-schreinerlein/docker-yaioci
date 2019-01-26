@@ -7,7 +7,7 @@
 #
 ###################################
 
-DIR_DO_YAIOCI=/cygdrive/D/Projekte/docker-yaioci
+DIR_DO_YAIOCI=/cygdrive/f/Projekte/docker-yaioci
 
 do_yaioci_cd()
 {

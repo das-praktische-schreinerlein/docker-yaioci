@@ -50,13 +50,33 @@ class LocalCreator {
                                          localDirName: "ymf"],
                 "schreinerleins-demo-desk": [defaultLayout: true]
         ]
+        def tsProjects = [
+                "mycms-commons": [defaultLayout: false,
+                                  defaultBranch: 'working',
+                                  skipCobertura: true],
+                "mycms-server-commons": [defaultLayout: false,
+                                         defaultBranch: 'working',
+                                         skipCobertura: true],
+                "mycms-frontend-commons": [defaultLayout: false,
+                                           defaultBranch: 'working',
+                                           skipCobertura: true],
+                "mysimplehomepage": [defaultLayout: false,
+                                     defaultBranch: 'working',
+                                     skipCobertura: true],
+                "mytourbook": [defaultLayout: false,
+                               localDirName: "mytourbook_upgrade",
+                               defaultBranch: 'working',
+                               skipCobertura: true]
+        ]
 
         def mavenJobConfigs = jobFramework.configureProjectJobs(mavenProjects, localRepoBasePath, gitHubUser, prefix, 'maven');
         def jsJobConfigs = jobFramework.configureProjectJobs(jsProjects, localRepoBasePath, gitHubUser, prefix, 'js');
+        def tsJobConfigs = jobFramework.configureProjectJobs(tsProjects, localRepoBasePath, gitHubUser, prefix, 'ts');
 
         def allJobConfigs = []
         allJobConfigs.addAll(mavenJobConfigs)
         allJobConfigs.addAll(jsJobConfigs)
+        allJobConfigs.addAll(tsJobConfigs)
 
         return allJobConfigs
     }

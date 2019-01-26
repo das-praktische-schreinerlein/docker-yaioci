@@ -93,6 +93,10 @@ class JobFramework {
                 def jobResult = this.createJsJob(jobConfig)
                 buildJobs << jobResult.buildJobName
                 metricJobs << jobResult.metricJobName
+            } else if (jobConfig.type == 'ts') {
+                def jobResult = this.createTsJob(jobConfig)
+                buildJobs << jobResult.buildJobName
+                metricJobs << jobResult.metricJobName
             } else {
                 println "Unknown Type: No Jobs ${jobName} for ${gitUrl} created"
             }
@@ -263,7 +267,7 @@ class JobFramework {
             configure {
                 it / 'builders' << 'hudson.tasks.Shell' {
                     command """npm install
-node_modules/.bin/grunt dist
+npm run build
 """
                 }
             }
@@ -308,7 +312,7 @@ node_modules/.bin/grunt dist
             configure {
                 it / 'builders' << 'hudson.tasks.Shell' {
                     command """npm install
-node_modules/.bin/grunt dist
+npm run build
 """
                 }
             }
@@ -320,8 +324,142 @@ sonar.projectName=${jobName}
 sonar.projectVersion=\$BUILD_NUMBER
 sonar.sources=src/main
 sonar.tests=src/test/javascript
-sonar.language=js
+#sonar.language=js
 sonar.javascript.lcov.reportPath=coverage/report-lcov/lcov.info
+"""
+                    javaOpts ''
+                    jdk '(Inherit From Job)'
+                    project ''
+                    task ''
+                }
+            }
+            publishers {
+                if (!config.config.skipCobertura) {
+                    cobertura('coverage/cobertura.xml') {
+                        autoUpdateHealth(false)
+                        autoUpdateStability(true)
+                        sourceEncoding('UTF_8')
+
+                        // the following targets are added by default to check the method, line and conditional level coverage
+                        methodTarget(80, 0, 0)
+                        lineTarget(80, 0, 0)
+                        conditionalTarget(70, 0, 0)
+                    }
+                }
+            }
+        }
+
+        return result
+    }
+
+    def createTsJob(def config) {
+        def jobName=config.name
+
+        def buildJobName = "Build-${config.prefix}-TS-${jobName}"
+        def metricJobName = "Metrics-${config.prefix}-SS-${jobName}"
+
+        def defaultBranch = 'develop'
+        if (config.config.defaultBranch) {
+            defaultBranch = config.config.defaultBranch
+        }
+
+        def result = [:];
+        result.buildJobName = buildJobName
+        result.metricJobName = metricJobName
+
+        println "Creating ${buildJobName} ${metricJobName}"
+        dslFactory.job(buildJobName) {
+            logRotator(-1, 10)
+            parameters {
+                stringParam('BRANCH', defaultBranch)
+                choiceParam('GITURL', config.repos)
+            }
+            scm {
+                git {
+                    branch '$BRANCH'
+                    remote {
+                        url('${GITURL}')
+                    }
+                    createTag(false)
+                }
+            }
+            configure { project->
+                project / buildWrappers / 'hudson.plugins.sonar.SonarBuildWrapper' {
+                    installationName 'sonarcube'
+                }
+                project / buildWrappers / 'jenkins.plugins.nodejs.tools.NpmPackagesBuildWrapper' {
+                    nodeJSInstallationName 'nodejs'
+                }
+            }
+            configure {
+                it / 'builders' << 'hudson.tasks.Shell' {
+                    command """npm install
+npm run build
+#npm test
+"""
+                }
+            }
+            configure {
+                it / publishers << 'hudson.plugins.parameterizedtrigger.BuildTrigger' {
+                    configs {
+                        'hudson.plugins.parameterizedtrigger.BuildTriggerConfig' {
+                            configs {
+                                'hudson.plugins.parameterizedtrigger.CurrentBuildParameters' ""
+                            }
+                            projects "${metricJobName}"
+                            condition "SUCCESS"
+                            triggerWithNoParameters false
+                        }
+                    }
+                }
+            }
+        }
+        dslFactory.job(metricJobName) {
+            logRotator(-1, 10)
+            parameters {
+                stringParam('BRANCH', 'master')
+                choiceParam('GITURL', config.repos)
+            }
+            scm {
+                git {
+                    branch '$BRANCH'
+                    remote {
+                        url('${GITURL}')
+                    }
+                    createTag(false)
+                }
+            }
+            configure { project->
+                project / buildWrappers / 'hudson.plugins.sonar.SonarBuildWrapper' {
+                    installationName 'sonarcube'
+                }
+                project / buildWrappers / 'jenkins.plugins.nodejs.tools.NpmPackagesBuildWrapper' {
+                    nodeJSInstallationName 'nodejs'
+                }
+            }
+            configure {
+                it / 'builders' << 'hudson.tasks.Shell' {
+                    command """npm install
+npm run build
+#npm test
+#npm run coverage
+"""
+                }
+            }
+            configure {
+                it / 'builders' << 'hudson.plugins.sonar.SonarRunnerBuilder' {
+                    properties """
+sonar.projectKey=de.yaio.${jobName}
+sonar.projectName=${jobName}
+sonar.projectVersion=\$BUILD_NUMBER
+sonar.sources=src/
+sonar.exclusions=**/node_modules/**,**/*.spec.ts
+sonar.tests=src
+sonar.test.inclusions=**/*.spec.ts
+#sonar.language=ts
+
+sonar.ts.tslint.configPath=tslint.json
+#sonar.ts.coverage.lcovReportPath=coverage/report-lcov/lcov.info
 """
                     javaOpts ''
                     jdk '(Inherit From Job)'
